@@ -10,6 +10,11 @@ import { View } from '../components';
 import { isMobile } from 'react-device-detect';
 import qs from 'querystringify';
 
+import {
+    LobbyV2Api,
+    RoomV1Api,
+  } from "@hathora/hathora-cloud-sdk";
+
 interface IProps extends RouteComponentProps {
     roomId?: string;
 }
@@ -28,6 +33,11 @@ export default class Match extends Component<IProps, IState> {
     private room?: Room;
 
     private timer: NodeJS.Timeout | null = null;
+
+    public lobbyClient = new LobbyV2Api();
+    public roomClient = new RoomV1Api();
+
+    public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
 
     // BASE
     constructor(props: IProps) {
@@ -83,22 +93,35 @@ export default class Match extends Component<IProps, IState> {
             };
         }
 
+        console.log('debug room id= ' + roomId)
+
         // Connect
         try {
-            const host = window.document.location.host.replace(/:.*/, '');
-            const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
-            const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
+            let finalRoomId = isNewRoom ? options.hathoraId : roomId
 
-            this.client = new Client(url);
+            const connectionInfo = await this.roomClient.getConnectionInfo(
+                this.appId, // your Hathora application id
+                finalRoomId, // options.hathoraId,
+              );
+            // console.log(connectionInfo.host + ':' + connectionInfo.port)
+            const url = 'wss://'+connectionInfo.host + ':' + connectionInfo.port
+
+            // this.client = new Client(url);
+            if (!this.client){
+            this.client = new Client(url)//'wss://1.proxy.hathora.dev:59520');
+            }
+            
             if (isNewRoom) {
                 this.room = await this.client.create(Constants.ROOM_NAME, options);
 
                 // We replace the "new" in the URL with the room's id
                 window.history.replaceState(null, '', `/${this.room.id}`);
             } else {
-                this.room = await this.client.joinById(roomId, options);
+                this.room = await this.client.joinById(finalRoomId, options)///*roomId*/, options);
             }
+            
         } catch (error) {
+            console.log('error= ' + error)
             navigate('/');
             return;
         }

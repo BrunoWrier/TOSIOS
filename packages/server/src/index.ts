@@ -12,14 +12,24 @@ const PORT = Number(process.env.PORT || Constants.WS_PORT);
 const PUBLIC_DIR = join(__dirname, '../../client/public');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: '*', // Replace with your client domain
+    methods: ['GET', 'POST'], // Specify the allowed HTTP methods
+},));
 app.use(express.json());
 app.use(compression());
 
 // Game server
 const server = new Server({
     server: createServer(app),
+
+    /*
     express: app,
+    cors: {
+        origin: '*', // Replace with your client domain
+        methods: ['GET', 'POST'], // Specify the allowed HTTP methods
+    },
+    */
 });
 
 // Game Rooms
