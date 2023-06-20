@@ -16,9 +16,7 @@ import { Constants, Types } from '@tosios/common';
 import React, { Component, Fragment } from 'react';
 import { RouteComponentProps, navigate } from '@reach/router';
 import { playerImage, titleImage } from '../images';
-import { Client } from 'colyseus.js';
 import { Helmet } from 'react-helmet';
-import { RoomAvailable } from 'colyseus.js/lib/Room';
 import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
@@ -56,14 +54,14 @@ interface IState {
 }
 
 export default class Home extends Component<IProps, IState> {
-    private client?: Client;
     public lobbyClient = new LobbyV2Api();
     public authClient = new AuthV1Api();
     public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
     public token;
     public roomCreated = false;
+    public roomCreatedMap = "small"
+    public roomCreatedMode = "deathmatch"
     public ip = "wss://1.proxy.hathora.dev:59520"
-    public colyseusroomId;
     public hathoraRoomId;
 
     constructor(props: IProps) {
@@ -86,23 +84,19 @@ export default class Home extends Component<IProps, IState> {
     // BASE
     
 
-    componentDidMount() {
+    async componentDidMount() {
         try {
             const host = window.document.location.host.replace(/:.*/, '');
             const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
             const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
             console.log("url: " + url)
-            // this.ip = "wss://1.proxy.hathora.dev:52866"
-            // this.client = new Client(this.ip);
-            // this.client.joinOrCreate('game')
-            this.updateRooms
-            this.authHathora
+
+            await this.updateRooms()
+            await this.authHathora()
             this.setState(
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
                 },
-                // this.authHathora,
-                // this.createLobby,
                 this.updateRooms
             );
         } catch (error) {
@@ -148,7 +142,6 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleRoomClick = (roomId: string) => {
-        // this.connectRoomid()
         console.log('joining in = ' + roomId)
         this.hathoraRoomId = roomId
 
@@ -206,26 +199,6 @@ export default class Home extends Component<IProps, IState> {
 
     // METHODS
 
-    connectRoomid = async () => {
-        // this.client = new Client("1.proxy.hathora.dev:11564/-_7Gid66s")
-        this.client = new Client('wss://1.proxy.hathora.dev:59520');
-        // this.client.joinOrCreate('game')
-
-        // test to get colyseus room ids
-        if (this.client){
-            this.client.getAvailableRooms("game").then(rooms => {
-                rooms.forEach((room) => {
-                  console.log('colyseus room id bellow')
-                  console.log(room.roomId);
-                  console.log('colyseus room id above')
-                });
-              }).catch(e => {
-                console.error(e);
-            });
-        }
-        // test above
-    }
-
     authHathora = async () => {
         if (this.token != undefined){
             return;
@@ -241,14 +214,13 @@ export default class Home extends Component<IProps, IState> {
         if (this.token == undefined) {
             return;
         }
-        // console.log("creating using the token: " + this.token.token)
         const lobby = await this.lobbyClient.createLobby(
             this.appId,
             this.token.token,
             {
               visibility: "public", // options: ["public", "private", "local"]
               region: "Sao_Paulo",
-              initialConfig: {/*roomId: '', */roomName: this.state.roomName, mapName: this.state.roomMap, clients: 0, maxClients: this.state.roomMaxPlayers, gamemode: this.state.mode}, // {capacity: 2, winningScore: 10},roomId, metadata, clients, maxClients
+              initialConfig: {roomName: this.state.roomName, mapName: this.roomCreatedMap, clients: 0, maxClients: this.state.roomMaxPlayers, mode: this.roomCreatedMode},
             },
         )
         
@@ -258,32 +230,14 @@ export default class Home extends Component<IProps, IState> {
     }
     
     updateRooms = async () => {
-        // if (!this.client) {
-        //    return;
-        //}
-        
-        if (this.token == undefined){
-            await this.authHathora();
-            return;
-        }
-        // hathora
         console.log('BUILT 2')
-        // if (this.roomCreated == false) await this.createLobby();
         
-        // await this.connectRoomid();
 
         const publicLobbies = await this.lobbyClient.listActivePublicLobbies(
-        this.appId // your Hathora application id
+        this.appId
         ); 
-        // console.log(publicLobbies)
-        // const rooms = await this.client.getAvailableRooms(Constants.ROOM_NAME); <- outdated
-        /*
-        publicLobbies.forEach((room) => {
-            console.log(room.roomId);
-            console.log(room.region);
-            console.log(room.initialConfig);
-        });
-        */
+        console.log(publicLobbies)
+
         this.setState({
              rooms: publicLobbies,
         });
@@ -426,6 +380,7 @@ export default class Home extends Component<IProps, IState> {
                             values={MapsList}
                             onChange={(event: any) => {
                                 this.setState({ roomMap: event.target.value });
+                                this.roomCreatedMap = event.target.value
                                 analytics.track({
                                     category: 'Game',
                                     action: 'Map',
@@ -460,6 +415,7 @@ export default class Home extends Component<IProps, IState> {
                             values={GameModesList}
                             onChange={(event: any) => {
                                 this.setState({ mode: event.target.value });
+                                this.roomCreatedMode = event.target.value
                                 analytics.track({
                                     category: 'Game',
                                     action: 'Mode',
@@ -501,19 +457,19 @@ export default class Home extends Component<IProps, IState> {
             );
         }
 
-        return rooms.map(({ initialConfig, roomId /* roomId, metadata, clients, maxClients */ }, index) => {
-            const map = MapsList.find((item) => item.value === initialConfig.roomMap); // metadata.roomMap);
-            const mapName = map ? map.title : initialConfig.roomMap;// metadata.roomMap;
+        return rooms.map(({ initialConfig, roomId, state }, index) => {
+            const map = MapsList.find((item) => item.value === initialConfig.roomMap);
+            let clientCount = state == undefined ? 0 : state.playerCount;
 
             return (
-                <Fragment key={roomId/*initialConfig.roomId*/}>
+                <Fragment key={roomId}>
                     <Room
-                        id={roomId/*initialConfig.roomId*/}
-                        roomName={initialConfig.roomName} // metadata.roomName}
-                        roomMap={mapName}
-                        clients={initialConfig.clients}
+                        id={roomId}
+                        roomName={initialConfig.roomName}
+                        roomMap={initialConfig.mapName}
+                        clients={clientCount}
                         maxClients={initialConfig.maxClients}
-                        mode={initialConfig.mode} // metadata.mode}
+                        mode={initialConfig.mode}
                         onClick={() => this.handleRoomClick(roomId)}
                     />
                     {index !== rooms.length - 1 && <Space size="xxs" />}

@@ -39,6 +39,8 @@ export default class Match extends Component<IProps, IState> {
 
     public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
 
+    public connectionInfo;
+
     // BASE
     constructor(props: IProps) {
         super(props);
@@ -97,18 +99,14 @@ export default class Match extends Component<IProps, IState> {
 
         // Connect
         try {
-            let finalRoomId = isNewRoom ? options.hathoraId : roomId
+            let definedRoomId = isNewRoom ? options.hathoraId : roomId
 
-            const connectionInfo = await this.roomClient.getConnectionInfo(
-                this.appId, // your Hathora application id
-                finalRoomId, // options.hathoraId,
-              );
-            // console.log(connectionInfo.host + ':' + connectionInfo.port)
-            const url = 'wss://'+connectionInfo.host + ':' + connectionInfo.port
+            this.connectionInfo = await this.poolConnectionInfo(definedRoomId)
+            
+            const url = 'wss://'+this.connectionInfo.host + ':' + this.connectionInfo.port
 
-            // this.client = new Client(url);
             if (!this.client){
-            this.client = new Client(url)//'wss://1.proxy.hathora.dev:59520');
+            this.client = new Client(url)
             }
             
             if (isNewRoom) {
@@ -117,7 +115,7 @@ export default class Match extends Component<IProps, IState> {
                 // We replace the "new" in the URL with the room's id
                 window.history.replaceState(null, '', `/${this.room.id}`);
             } else {
-                this.room = await this.client.joinById(finalRoomId, options)///*roomId*/, options);
+                this.room = await this.client.joinById(definedRoomId, options)
             }
             
         } catch (error) {
@@ -293,6 +291,30 @@ export default class Match extends Component<IProps, IState> {
     };
 
     // METHODS
+    getHathoraConnectionInfo = async (definedRoomId) => {
+        let info = await this.roomClient.getConnectionInfo(
+            this.appId,
+            definedRoomId,
+        );
+        
+        if (info === undefined){
+            return undefined;
+        } 
+
+        return info;
+
+    }
+
+    poolConnectionInfo = async (definedRoomId) => {
+        let result;
+  
+        while (result === undefined || result.status === 'starting' ) {
+            result = await this.getHathoraConnectionInfo(definedRoomId);
+        }
+        
+        return result;
+    }
+
     isPlayerIdMe = (playerId: string) => {
         return this.state.hud.playerId === playerId;
     };

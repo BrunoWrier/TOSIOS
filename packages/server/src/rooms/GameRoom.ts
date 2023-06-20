@@ -2,7 +2,14 @@ import { Client, Room } from 'colyseus';
 import { Constants, Maths, Models, Types } from '@tosios/common';
 import { GameState } from '../states/GameState';
 
+import { LobbyV2Api, RoomV1Api } from "@hathora/hathora-cloud-sdk";
+
 export class GameRoom extends Room<GameState> {
+    public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
+    public developerToken = "aH3d9dDPg7FEaR4hsGZVOwBTIIk6RtvXzzf7qi0qQCZPU"
+    public lobbyClient = new LobbyV2Api();
+    public roomClient = new RoomV1Api();
+
     //
     // Lifecycle
     //
@@ -60,17 +67,67 @@ export class GameRoom extends Room<GameState> {
         });
     }
 
-    onJoin(client: Client, options: Types.IPlayerOptions) {
+    async onJoin(client: Client, options: Types.IPlayerOptions) {
         this.state.playerAdd(client.sessionId, options.playerName);
 
         console.log('roomid = ' + this.roomId)
         console.log(`${new Date().toISOString()} [Join] id=${client.sessionId} player=${options.playerName}`);
+
+        // hathora
+        let myCustomLobbyState = { playerCount: this.clients.length}
+
+        try{
+        const lobby = await this.lobbyClient.setLobbyState(
+            this.appId,
+            this.roomId,
+            { state: myCustomLobbyState },
+            { headers: {
+                Authorization: `Bearer ${this.developerToken}`,
+                "Content-Type": "application/json"
+            } }
+            ); 
+        }catch(error){
+            console.error(error)
+        }
+        
     }
 
-    onLeave(client: Client) {
+    async onLeave(client: Client) {
         this.state.playerRemove(client.sessionId);
 
         console.log(`${new Date().toISOString()} [Leave] id=${client.sessionId}`);
+
+        // hathora
+        let myCustomLobbyState = { playerCount: this.clients.length}
+
+        try{
+            const lobby = await this.lobbyClient.setLobbyState(
+                this.appId,
+                this.roomId,
+                { state: myCustomLobbyState },
+                { headers: {
+                    Authorization: `Bearer ${this.developerToken}`,
+                    "Content-Type": "application/json"
+                } }
+                ); 
+            }catch(error){
+                console.error(error)
+            }
+    }
+
+    async onDispose () {
+        try{
+        const lobby = await this.roomClient.destroyRoom(
+            this.appId,
+            this.roomId,
+            { headers: {
+              Authorization: `Bearer ${this.developerToken}`,
+              "Content-Type": "application/json"
+            } }
+          );
+        }catch(error){
+            console.error(error)
+        }
     }
 
     //
@@ -83,4 +140,5 @@ export class GameRoom extends Room<GameState> {
     handleMessage = (message: Models.MessageJSON) => {
         this.broadcast(message.type, message);
     };
+
 }
