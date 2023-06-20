@@ -6,7 +6,7 @@ import { LobbyV2Api, RoomV1Api } from "@hathora/hathora-cloud-sdk";
 
 export class GameRoom extends Room<GameState> {
     public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
-    public developerToken = "aH3d9dDPg7FEaR4hsGZVOwBTIIk6RtvXzzf7qi0qQCZPU"
+    public developerToken = process.env.hathoradeveloperToken
     public lobbyClient = new LobbyV2Api();
     public roomClient = new RoomV1Api();
 
