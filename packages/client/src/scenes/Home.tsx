@@ -91,7 +91,7 @@ export default class Home extends Component<IProps, IState> {
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
                 },
-                this.updateRooms
+                this.updateRooms,
             );
         } catch (error) {
             console.error(error);
@@ -219,7 +219,7 @@ export default class Home extends Component<IProps, IState> {
         const publicLobbies = await this.lobbyClient.listActivePublicLobbies(
         this.appId
         ); 
-        
+
         this.setState({
              rooms: publicLobbies,
         });

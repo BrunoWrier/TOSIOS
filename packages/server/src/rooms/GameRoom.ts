@@ -69,10 +69,8 @@ export class GameRoom extends Room<GameState> {
     async onJoin(client: Client, options: Types.IPlayerOptions) {
         this.state.playerAdd(client.sessionId, options.playerName);
 
-        console.log('roomid = ' + this.roomId)
         console.log(`${new Date().toISOString()} [Join] id=${client.sessionId} player=${options.playerName}`);
 
-        // hathora
         let myCustomLobbyState = { playerCount: this.clients.length}
 
         try{
@@ -96,7 +94,6 @@ export class GameRoom extends Room<GameState> {
 
         console.log(`${new Date().toISOString()} [Leave] id=${client.sessionId}`);
 
-        // hathora
         let myCustomLobbyState = { playerCount: this.clients.length}
 
         try{
