@@ -139,18 +139,8 @@ export default class Home extends Component<IProps, IState> {
         this.hathoraRoomId = roomId
 
         this.setState({hathoraId: this.hathoraRoomId})
-
-        const { playerName, roomName, roomMap, roomMaxPlayers, mode, hathoraId } = this.state;
+        
         const analytics = useAnalytics();
-
-        const options: Types.IRoomOptions = {
-            playerName,
-            roomName,
-            roomMap,
-            roomMaxPlayers,
-            mode,
-            hathoraId,
-        };
 
         analytics.track({
             category: 'Room',
@@ -196,16 +186,48 @@ export default class Home extends Component<IProps, IState> {
         this.token = await this.authClient.loginAnonymous(this.appId);
     }
 
+    getPing = async () => {
+        try {
+          const response = await fetch('https://api.hathora.dev/discovery/v1/ping');
+      
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+      
+          const data = await response.json();
+      
+          const connectionPromises = data.map(({ region, host, port }) => {
+            return new Promise(async (resolve) => {
+              const pingUrl = `wss://${host}:${port}`;
+              const socket = new WebSocket(pingUrl);
+      
+              socket.addEventListener('open', () => {
+                resolve({ region });
+                socket.close();
+              });
+            });
+          });
+
+          const { region } = await Promise.race(connectionPromises);
+
+          return region;
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
     createLobby = async () => {
         if (this.token == undefined) {
             return;
         }
+        let pingRegion = await this.getPing()
+
         const lobby = await this.lobbyClient.createLobby(
             this.appId,
             this.token.token,
             {
               visibility: "public",
-              region: "Sao_Paulo",
+              region: pingRegion,
               initialConfig: {roomName: this.state.roomName, mapName: this.roomCreatedMap, clients: 0, maxClients: this.state.roomMaxPlayers, mode: this.roomCreatedMode},
             },
         )
