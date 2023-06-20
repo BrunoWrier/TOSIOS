@@ -22,14 +22,6 @@ app.use(compression());
 // Game server
 const server = new Server({
     server: createServer(app),
-
-    /*
-    express: app,
-    cors: {
-        origin: '*', // Replace with your client domain
-        methods: ['GET', 'POST'], // Specify the allowed HTTP methods
-    },
-    */
 });
 
 // Game Rooms
