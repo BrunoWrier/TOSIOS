@@ -48,7 +48,7 @@ interface IState {
     roomMap: any;
     roomMaxPlayers: any;
     mode: any;
-    rooms: Array<any>; // Array<RoomAvailable<any>>;
+    rooms: Array<any>;
     timer: NodeJS.Timeout | null;
     hathoraId: string;
 }
@@ -61,7 +61,6 @@ export default class Home extends Component<IProps, IState> {
     public roomCreated = false;
     public roomCreatedMap = "small"
     public roomCreatedMode = "deathmatch"
-    public ip = "wss://1.proxy.hathora.dev:59520"
     public hathoraRoomId;
 
     constructor(props: IProps) {
@@ -86,11 +85,6 @@ export default class Home extends Component<IProps, IState> {
 
     async componentDidMount() {
         try {
-            const host = window.document.location.host.replace(/:.*/, '');
-            const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
-            const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
-            console.log("url: " + url)
-
             await this.updateRooms()
             await this.authHathora()
             this.setState(
@@ -142,7 +136,6 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleRoomClick = (roomId: string) => {
-        console.log('joining in = ' + roomId)
         this.hathoraRoomId = roomId
 
         this.setState({hathoraId: this.hathoraRoomId})
@@ -165,9 +158,6 @@ export default class Home extends Component<IProps, IState> {
         });
 
         navigate(`/${roomId}`);
-        
-        
-        
         
     };
 
@@ -204,10 +194,6 @@ export default class Home extends Component<IProps, IState> {
             return;
         }
         this.token = await this.authClient.loginAnonymous(this.appId);
-
-        // debug
-        console.log("token bellow:")
-        console.log(this.token)
     }
 
     createLobby = async () => {
@@ -218,7 +204,7 @@ export default class Home extends Component<IProps, IState> {
             this.appId,
             this.token.token,
             {
-              visibility: "public", // options: ["public", "private", "local"]
+              visibility: "public",
               region: "Sao_Paulo",
               initialConfig: {roomName: this.state.roomName, mapName: this.roomCreatedMap, clients: 0, maxClients: this.state.roomMaxPlayers, mode: this.roomCreatedMode},
             },
@@ -230,14 +216,10 @@ export default class Home extends Component<IProps, IState> {
     }
     
     updateRooms = async () => {
-        console.log('BUILT 2')
-        
-
         const publicLobbies = await this.lobbyClient.listActivePublicLobbies(
         this.appId
         ); 
-        console.log(publicLobbies)
-
+        
         this.setState({
              rooms: publicLobbies,
         });

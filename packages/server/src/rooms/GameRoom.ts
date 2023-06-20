@@ -14,7 +14,6 @@ export class GameRoom extends Room<GameState> {
     // Lifecycle
     //
     onCreate(options: Types.IRoomOptions) {
-        // set roomId
         this.roomId = options.hathoraId
 
         // Set max number of clients for this room

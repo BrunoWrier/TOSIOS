@@ -95,8 +95,6 @@ export default class Match extends Component<IProps, IState> {
             };
         }
 
-        console.log('debug room id= ' + roomId)
-
         // Connect
         try {
             let definedRoomId = isNewRoom ? options.hathoraId : roomId
@@ -119,7 +117,6 @@ export default class Match extends Component<IProps, IState> {
             }
             
         } catch (error) {
-            console.log('error= ' + error)
             navigate('/');
             return;
         }
