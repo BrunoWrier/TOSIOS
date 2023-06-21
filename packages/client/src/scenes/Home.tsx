@@ -61,7 +61,6 @@ export default class Home extends Component<IProps, IState> {
     public roomCreated = false;
     public roomCreatedMap = "small"
     public roomCreatedMode = "deathmatch"
-    public hathoraRoomId;
 
     constructor(props: IProps) {
         super(props);
@@ -136,9 +135,7 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleRoomClick = (roomId: string) => {
-        this.hathoraRoomId = roomId
-
-        this.setState({hathoraId: this.hathoraRoomId})
+        this.setState({hathoraId: roomId})
         
         const analytics = useAnalytics();
 
@@ -232,8 +229,7 @@ export default class Home extends Component<IProps, IState> {
             },
         )
         
-        this.hathoraRoomId = lobby.roomId;
-        this.setState({hathoraId: this.hathoraRoomId})
+        this.setState({hathoraId: lobby.roomId})
         this.roomCreated = true
     }
     
