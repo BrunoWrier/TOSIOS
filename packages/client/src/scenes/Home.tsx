@@ -21,7 +21,7 @@ import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
 import { LobbyV2Api, AuthV1Api, Lobby } from "@hathora/hathora-cloud-sdk";
-import { authHathora, createLobby } from '@tosios/common/src/hathora';
+import { authHathora, createLobby, lobbyClient } from '@tosios/common/src/hathora';
 
 type TypeLobbyState = { playerCount: number };
 type TypeLobbyInitialConfig = { roomName: string, mapName: string, clients: number, maxClients: number, mode: string, roomMap: string };
@@ -57,10 +57,7 @@ interface IState {
 }
 
 export default class Home extends Component<IProps, IState> {
-    public lobbyClient = new LobbyV2Api();
-    public authClient = new AuthV1Api();
     public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
-    public token;
     public roomCreated = false;
     public roomCreatedMap = "small"
     public roomCreatedMode = "deathmatch"
@@ -89,7 +86,7 @@ export default class Home extends Component<IProps, IState> {
     async componentDidMount() {
         try {
             await this.updateRooms()
-            await authHathora(this)
+            await authHathora()
             this.setState(
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
@@ -177,10 +174,8 @@ export default class Home extends Component<IProps, IState> {
     };
 
     // METHODS
-    // pls import
-    
     updateRooms = async () => {
-        const publicLobbies = await this.lobbyClient.listActivePublicLobbies(
+        const publicLobbies = await lobbyClient.listActivePublicLobbies(
         this.appId
         ); 
 

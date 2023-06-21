@@ -39,8 +39,6 @@ export default class Match extends Component<IProps, IState> {
     public lobbyClient = new LobbyV2Api();
     public roomClient = new RoomV1Api();
 
-    public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
-
     public connectionInfo;
 
     // BASE
@@ -101,7 +99,7 @@ export default class Match extends Component<IProps, IState> {
         try {
             let definedRoomId = isNewRoom ? options.hathoraId : roomId
 
-            this.connectionInfo = await pollConnectionInfo(this, definedRoomId)
+            this.connectionInfo = await pollConnectionInfo(definedRoomId)
             
             const url = 'wss://'+this.connectionInfo.host + ':' + this.connectionInfo.port
 

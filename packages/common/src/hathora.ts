@@ -1,8 +1,16 @@
-export const authHathora = async (obj) => {
-    if (obj.token != undefined){
+import { LobbyV2Api, RoomV1Api, AuthV1Api} from "@hathora/hathora-cloud-sdk";
+
+export const lobbyClient = new LobbyV2Api();
+export const roomClient = new RoomV1Api();
+export const authClient = new AuthV1Api();
+export const appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
+export var token;
+
+export const authHathora = async () => {
+    if (token != undefined){
         return;
     }
-    obj.token = await obj.authClient.loginAnonymous(obj.appId);
+    token = await authClient.loginAnonymous(appId);
 }
 
 const getPing = async () => {
@@ -36,14 +44,14 @@ const getPing = async () => {
   }
 
   export const createLobby = async (obj) => {
-    if (obj.token == undefined) {
+    if (token == undefined) {
         return;
     }
     let pingRegion = await getPing()
 
-    const lobby = await obj.lobbyClient.createLobby(
-        obj.appId,
-        obj.token.token,
+    const lobby = await lobbyClient.createLobby(
+        appId,
+        token.token,
         {
           visibility: "public",
           region: pingRegion,
@@ -55,9 +63,9 @@ const getPing = async () => {
     obj.roomCreated = true
 }
 
-const getHathoraConnectionInfo = async (obj, definedRoomId) => {
-    let info = await obj.roomClient.getConnectionInfo(
-        obj.appId,
+const getHathoraConnectionInfo = async (definedRoomId) => {
+    let info = await roomClient.getConnectionInfo(
+        appId,
         definedRoomId,
     );
     
@@ -69,12 +77,12 @@ const getHathoraConnectionInfo = async (obj, definedRoomId) => {
 
 }
 
-export const pollConnectionInfo = async (obj, definedRoomId) => {
+export const pollConnectionInfo = async (definedRoomId) => {
     let result;
 
     while (result === undefined || result.status === 'starting' ) {
         await new Promise((resolve) => setTimeout(resolve, 200));
-        result = await getHathoraConnectionInfo(obj, definedRoomId);
+        result = await getHathoraConnectionInfo(definedRoomId);
     }
     
     return result;
