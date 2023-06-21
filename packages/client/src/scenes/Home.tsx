@@ -20,8 +20,11 @@ import { Helmet } from 'react-helmet';
 import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
-import { LobbyV2Api } from "@hathora/hathora-cloud-sdk";
-import {AuthV1Api, Configuration} from "@hathora/hathora-cloud-sdk";
+import { LobbyV2Api, AuthV1Api, Lobby } from "@hathora/hathora-cloud-sdk";
+import { authHathora, createLobby } from '@tosios/common/src/hathora';
+
+type TypeLobbyState = { playerCount: number };
+type TypeLobbyInitialConfig = { roomName: string, mapName: string, clients: number, maxClients: number, mode: string, roomMap: string };
 
 const MapsList: IListItem[] = Constants.MAPS_NAMES.map((value) => ({
     value,
@@ -48,7 +51,7 @@ interface IState {
     roomMap: any;
     roomMaxPlayers: any;
     mode: any;
-    rooms: Array<any>;
+    rooms: Array<Lobby>;
     timer: NodeJS.Timeout | null;
     hathoraId: string;
 }
@@ -61,6 +64,7 @@ export default class Home extends Component<IProps, IState> {
     public roomCreated = false;
     public roomCreatedMap = "small"
     public roomCreatedMode = "deathmatch"
+    
 
     constructor(props: IProps) {
         super(props);
@@ -75,7 +79,7 @@ export default class Home extends Component<IProps, IState> {
             mode: GameModesList[0].value,
             rooms: [],
             timer: null,
-            hathoraId: '',
+            hathoraId: "",
         };
     }
 
@@ -85,7 +89,7 @@ export default class Home extends Component<IProps, IState> {
     async componentDidMount() {
         try {
             await this.updateRooms()
-            await this.authHathora()
+            await authHathora(this)
             this.setState(
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
@@ -96,7 +100,6 @@ export default class Home extends Component<IProps, IState> {
             console.error(error);
         }
     }
-    
 
     componentWillUnmount() {
         const { timer } = this.state;
@@ -145,11 +148,10 @@ export default class Home extends Component<IProps, IState> {
         });
 
         navigate(`/${roomId}`);
-        
     };
 
     handleCreateRoomClick = async () => {
-        if (this.roomCreated == false) await this.createLobby();
+        if (this.roomCreated == false) await createLobby(this);
 
         const { playerName, roomName, roomMap, roomMaxPlayers, mode, hathoraId } = this.state;
         const analytics = useAnalytics();
@@ -175,63 +177,7 @@ export default class Home extends Component<IProps, IState> {
     };
 
     // METHODS
-
-    authHathora = async () => {
-        if (this.token != undefined){
-            return;
-        }
-        this.token = await this.authClient.loginAnonymous(this.appId);
-    }
-
-    getPing = async () => {
-        try {
-          const response = await fetch('https://api.hathora.dev/discovery/v1/ping');
-      
-          if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
-          }
-      
-          const data = await response.json();
-      
-          const connectionPromises = data.map(({ region, host, port }) => {
-            return new Promise(async (resolve) => {
-              const pingUrl = `wss://${host}:${port}`;
-              const socket = new WebSocket(pingUrl);
-      
-              socket.addEventListener('open', () => {
-                resolve({ region });
-                socket.close();
-              });
-            });
-          });
-
-          const { region } = await Promise.race(connectionPromises);
-
-          return region;
-        } catch (error) {
-          console.error(error);
-        }
-      }
-
-    createLobby = async () => {
-        if (this.token == undefined) {
-            return;
-        }
-        let pingRegion = await this.getPing()
-
-        const lobby = await this.lobbyClient.createLobby(
-            this.appId,
-            this.token.token,
-            {
-              visibility: "public",
-              region: pingRegion,
-              initialConfig: {roomName: this.state.roomName, mapName: this.roomCreatedMap, clients: 0, maxClients: this.state.roomMaxPlayers, mode: this.roomCreatedMode},
-            },
-        )
-        
-        this.setState({hathoraId: lobby.roomId})
-        this.roomCreated = true
-    }
+    // pls import
     
     updateRooms = async () => {
         const publicLobbies = await this.lobbyClient.listActivePublicLobbies(
@@ -239,7 +185,7 @@ export default class Home extends Component<IProps, IState> {
         ); 
 
         this.setState({
-             rooms: publicLobbies,
+            rooms: publicLobbies,
         });
 
     };
@@ -458,18 +404,19 @@ export default class Home extends Component<IProps, IState> {
         }
 
         return rooms.map(({ initialConfig, roomId, state }, index) => {
-            const map = MapsList.find((item) => item.value === initialConfig.roomMap);
-            let clientCount = state == undefined ? 0 : state.playerCount;
+            const typedState = state as TypeLobbyState;
+            const typedInitialConfig = initialConfig as TypeLobbyInitialConfig;
+            let clientCount = state == undefined ? 0 : typedState.playerCount;
 
             return (
                 <Fragment key={roomId}>
                     <Room
                         id={roomId}
-                        roomName={initialConfig.roomName}
-                        roomMap={initialConfig.mapName}
+                        roomName={typedInitialConfig.roomName}
+                        roomMap={typedInitialConfig.mapName}
                         clients={clientCount}
-                        maxClients={initialConfig.maxClients}
-                        mode={initialConfig.mode}
+                        maxClients={typedInitialConfig.maxClients}
+                        mode={typedInitialConfig.mode}
                         onClick={() => this.handleRoomClick(roomId)}
                     />
                     {index !== rooms.length - 1 && <Space size="xxs" />}

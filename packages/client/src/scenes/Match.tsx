@@ -15,6 +15,8 @@ import {
     RoomV1Api,
   } from "@hathora/hathora-cloud-sdk";
 
+import { pollConnectionInfo } from '@tosios/common/src/hathora';
+
 interface IProps extends RouteComponentProps {
     roomId?: string;
 }
@@ -99,7 +101,7 @@ export default class Match extends Component<IProps, IState> {
         try {
             let definedRoomId = isNewRoom ? options.hathoraId : roomId
 
-            this.connectionInfo = await this.poolConnectionInfo(definedRoomId)
+            this.connectionInfo = await pollConnectionInfo(this, definedRoomId)
             
             const url = 'wss://'+this.connectionInfo.host + ':' + this.connectionInfo.port
 
@@ -288,30 +290,6 @@ export default class Match extends Component<IProps, IState> {
     };
 
     // METHODS
-    getHathoraConnectionInfo = async (definedRoomId) => {
-        let info = await this.roomClient.getConnectionInfo(
-            this.appId,
-            definedRoomId,
-        );
-        
-        if (info === undefined){
-            return undefined;
-        } 
-
-        return info;
-
-    }
-
-    poolConnectionInfo = async (definedRoomId) => {
-        let result;
-  
-        while (result === undefined || result.status === 'starting' ) {
-            result = await this.getHathoraConnectionInfo(definedRoomId);
-        }
-        
-        return result;
-    }
-
     isPlayerIdMe = (playerId: string) => {
         return this.state.hud.playerId === playerId;
     };

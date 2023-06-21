@@ -136,5 +136,4 @@ export class GameRoom extends Room<GameState> {
     handleMessage = (message: Models.MessageJSON) => {
         this.broadcast(message.type, message);
     };
-
 }
