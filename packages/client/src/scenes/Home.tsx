@@ -401,7 +401,7 @@ export default class Home extends Component<IProps, IState> {
         return rooms.map(({ initialConfig, roomId, state }, index) => {
             const typedState = state as TypeLobbyState;
             const typedInitialConfig = initialConfig as TypeLobbyInitialConfig;
-            let clientCount = state == undefined ? 0 : typedState.playerCount;
+            const clientCount = typedState?.playerCount ?? 0;
 
             return (
                 <Fragment key={roomId}>
