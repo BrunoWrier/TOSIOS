@@ -20,7 +20,7 @@ import { Helmet } from 'react-helmet';
 import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
-import { LobbyV2Api, AuthV1Api, Lobby } from "@hathora/hathora-cloud-sdk";
+import { Lobby } from "@hathora/hathora-cloud-sdk";
 import { authHathora, createLobby, lobbyClient } from '@tosios/common/src/hathora';
 
 type TypeLobbyState = { playerCount: number };

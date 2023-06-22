@@ -10,11 +10,6 @@ import { View } from '../components';
 import { isMobile } from 'react-device-detect';
 import qs from 'querystringify';
 
-import {
-    LobbyV2Api,
-    RoomV1Api,
-  } from "@hathora/hathora-cloud-sdk";
-
 import { pollConnectionInfo } from '@tosios/common/src/hathora';
 
 interface IProps extends RouteComponentProps {
@@ -35,9 +30,6 @@ export default class Match extends Component<IProps, IState> {
     private room?: Room;
 
     private timer: NodeJS.Timeout | null = null;
-
-    public lobbyClient = new LobbyV2Api();
-    public roomClient = new RoomV1Api();
 
     public connectionInfo;
 
