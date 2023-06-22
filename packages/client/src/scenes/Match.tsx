@@ -96,7 +96,7 @@ export default class Match extends Component<IProps, IState> {
             const url = `wss://${this.connectionInfo.host}:${this.connectionInfo.port}`
 
             if (!this.client){
-            this.client = new Client(url)
+              this.client = new Client(url)
             }
             
             if (isNewRoom) {

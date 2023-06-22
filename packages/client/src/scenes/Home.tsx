@@ -175,7 +175,7 @@ export default class Home extends Component<IProps, IState> {
     // METHODS
     updateRooms = async () => {
         const publicLobbies = await lobbyClient.listActivePublicLobbies(
-        HATHORA_APP_ID
+          HATHORA_APP_ID
         ); 
 
         this.setState({
@@ -183,7 +183,6 @@ export default class Home extends Component<IProps, IState> {
         });
 
     };
-    
 
     // RENDER
     render() {
