@@ -2,14 +2,9 @@ import { Client, Room } from 'colyseus';
 import { Constants, Maths, Models, Types } from '@tosios/common';
 import { GameState } from '../states/GameState';
 
-import { LobbyV2Api, RoomV1Api } from "@hathora/hathora-cloud-sdk";
+import { hathoraSetLobbyState, hathoraDestroyLobby } from '@tosios/common/src/hathora';
 
 export class GameRoom extends Room<GameState> {
-    public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
-    public developerToken = process.env.hathoradeveloperToken
-    public lobbyClient = new LobbyV2Api();
-    public roomClient = new RoomV1Api();
-
     //
     // Lifecycle
     //
@@ -71,21 +66,7 @@ export class GameRoom extends Room<GameState> {
 
         console.log(`${new Date().toISOString()} [Join] id=${client.sessionId} player=${options.playerName}`);
 
-        let myCustomLobbyState = { playerCount: this.clients.length}
-
-        try{
-        const lobby = await this.lobbyClient.setLobbyState(
-            this.appId,
-            this.roomId,
-            { state: myCustomLobbyState },
-            { headers: {
-                Authorization: `Bearer ${this.developerToken}`,
-                "Content-Type": "application/json"
-            } }
-            ); 
-        }catch(error){
-            console.error(error)
-        }
+        await hathoraSetLobbyState(this.roomId, this.clients.length)
         
     }
 
@@ -94,36 +75,11 @@ export class GameRoom extends Room<GameState> {
 
         console.log(`${new Date().toISOString()} [Leave] id=${client.sessionId}`);
 
-        let myCustomLobbyState = { playerCount: this.clients.length}
-
-        try{
-            const lobby = await this.lobbyClient.setLobbyState(
-                this.appId,
-                this.roomId,
-                { state: myCustomLobbyState },
-                { headers: {
-                    Authorization: `Bearer ${this.developerToken}`,
-                    "Content-Type": "application/json"
-                } }
-                ); 
-            }catch(error){
-                console.error(error)
-            }
+        await hathoraSetLobbyState(this.roomId, this.clients.length)
     }
 
     async onDispose () {
-        try{
-        const lobby = await this.roomClient.destroyRoom(
-            this.appId,
-            this.roomId,
-            { headers: {
-              Authorization: `Bearer ${this.developerToken}`,
-              "Content-Type": "application/json"
-            } }
-          );
-        }catch(error){
-            console.error(error)
-        }
+        hathoraDestroyLobby(this.roomId)
     }
 
     //

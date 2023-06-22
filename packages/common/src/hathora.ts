@@ -5,6 +5,7 @@ export const roomClient = new RoomV1Api();
 export const authClient = new AuthV1Api();
 export const appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
 export var token;
+export const developerToken = process.env.hathoradeveloperToken
 
 export const authHathora = async () => {
     if (token != undefined){
@@ -86,4 +87,37 @@ export const pollConnectionInfo = async (definedRoomId) => {
     }
     
     return result;
+}
+
+export const hathoraSetLobbyState = async (roomId, clientslength) => {
+  let myCustomLobbyState = { playerCount: clientslength}
+
+  try{
+  const lobby = await lobbyClient.setLobbyState(
+      appId,
+      roomId,
+      { state: myCustomLobbyState },
+      { headers: {
+          Authorization: `Bearer ${developerToken}`,
+          "Content-Type": "application/json"
+      } }
+      ); 
+  }catch(error){
+      console.error(error)
+  }
+}
+
+export const hathoraDestroyLobby = async (roomId) => {
+  try{
+    const lobby = await roomClient.destroyRoom(
+        appId,
+        roomId,
+        { headers: {
+          Authorization: `Bearer ${developerToken}`,
+          "Content-Type": "application/json"
+        } }
+      );
+    }catch(error){
+        console.error(error)
+    }
 }
