@@ -21,7 +21,7 @@ import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
 import { Lobby } from "@hathora/hathora-cloud-sdk";
-import { authHathora, createLobby, lobbyClient } from '@tosios/common/src/hathora';
+import { authHathora, createLobby, lobbyClient, appId } from '@tosios/common/src/hathora';
 
 type TypeLobbyState = { playerCount: number };
 type TypeLobbyInitialConfig = { roomName: string, mapName: string, clients: number, maxClients: number, mode: string, roomMap: string };
@@ -57,7 +57,6 @@ interface IState {
 }
 
 export default class Home extends Component<IProps, IState> {
-    public appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
     public roomCreated = false;
     public roomCreatedMap = "small"
     public roomCreatedMode = "deathmatch"
@@ -176,7 +175,7 @@ export default class Home extends Component<IProps, IState> {
     // METHODS
     updateRooms = async () => {
         const publicLobbies = await lobbyClient.listActivePublicLobbies(
-        this.appId
+        appId
         ); 
 
         this.setState({
@@ -401,7 +400,6 @@ export default class Home extends Component<IProps, IState> {
         return rooms.map(({ initialConfig, roomId, state }, index) => {
             const typedState = state as TypeLobbyState;
             const typedInitialConfig = initialConfig as TypeLobbyInitialConfig;
-            const clientCount = typedState?.playerCount ?? 0;
 
             return (
                 <Fragment key={roomId}>
@@ -409,7 +407,7 @@ export default class Home extends Component<IProps, IState> {
                         id={roomId}
                         roomName={typedInitialConfig.roomName}
                         roomMap={typedInitialConfig.mapName}
-                        clients={clientCount}
+                        clients={typedState?.playerCount ?? 0}
                         maxClients={typedInitialConfig.maxClients}
                         mode={typedInitialConfig.mode}
                         onClick={() => this.handleRoomClick(roomId)}

@@ -93,7 +93,7 @@ export default class Match extends Component<IProps, IState> {
 
             this.connectionInfo = await pollConnectionInfo(definedRoomId)
             
-            const url = 'wss://'+this.connectionInfo.host + ':' + this.connectionInfo.port
+            const url = `wss://${this.connectionInfo.host}:${this.connectionInfo.port}`
 
             if (!this.client){
             this.client = new Client(url)
@@ -107,7 +107,6 @@ export default class Match extends Component<IProps, IState> {
             } else {
                 this.room = await this.client.joinById(definedRoomId, options)
             }
-            
         } catch (error) {
             navigate('/');
             return;
