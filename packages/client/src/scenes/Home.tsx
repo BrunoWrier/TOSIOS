@@ -21,7 +21,7 @@ import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
 import { Lobby } from "@hathora/hathora-cloud-sdk";
-import { authHathora, createLobby, lobbyClient, appId } from '@tosios/common/src/hathora';
+import { authHathora, createLobby, lobbyClient, HATHORA_APP_ID } from '@tosios/common/src/hathora';
 
 type TypeLobbyState = { playerCount: number };
 type TypeLobbyInitialConfig = { roomName: string, mapName: string, clients: number, maxClients: number, mode: string, roomMap: string };
@@ -175,7 +175,7 @@ export default class Home extends Component<IProps, IState> {
     // METHODS
     updateRooms = async () => {
         const publicLobbies = await lobbyClient.listActivePublicLobbies(
-        appId
+        HATHORA_APP_ID
         ); 
 
         this.setState({
