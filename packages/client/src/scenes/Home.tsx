@@ -16,11 +16,12 @@ import { Constants, Types } from '@tosios/common';
 import React, { Component, Fragment } from 'react';
 import { RouteComponentProps, navigate } from '@reach/router';
 import { playerImage, titleImage } from '../images';
-import { Client } from 'colyseus.js';
 import { Helmet } from 'react-helmet';
-import { RoomAvailable } from 'colyseus.js/lib/Room';
 import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
+
+import { Lobby } from "@hathora/hathora-cloud-sdk";
+import { createLobby, lobbyClient, HATHORA_APP_ID, LobbyState, LobbyInitialConfig } from '@tosios/common/src/hathora';
 
 const MapsList: IListItem[] = Constants.MAPS_NAMES.map((value) => ({
     value,
@@ -47,12 +48,16 @@ interface IState {
     roomMap: any;
     roomMaxPlayers: any;
     mode: any;
-    rooms: Array<RoomAvailable<any>>;
+    rooms: Array<Lobby>;
     timer: NodeJS.Timeout | null;
+    hathoraId: string;
 }
 
 export default class Home extends Component<IProps, IState> {
-    private client?: Client;
+    public roomCreated = false;
+    public roomCreatedMap = "small"
+    public roomCreatedMode = "deathmatch"
+    
 
     constructor(props: IProps) {
         super(props);
@@ -67,17 +72,14 @@ export default class Home extends Component<IProps, IState> {
             mode: GameModesList[0].value,
             rooms: [],
             timer: null,
+            hathoraId: "",
         };
     }
 
     // BASE
-    componentDidMount() {
+    async componentDidMount() {
         try {
-            const host = window.document.location.host.replace(/:.*/, '');
-            const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
-            const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
-
-            this.client = new Client(url);
+            await this.updateRooms()
             this.setState(
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
@@ -126,6 +128,8 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleRoomClick = (roomId: string) => {
+        this.setState({hathoraId: roomId})
+        
         const analytics = useAnalytics();
 
         analytics.track({
@@ -136,9 +140,15 @@ export default class Home extends Component<IProps, IState> {
         navigate(`/${roomId}`);
     };
 
-    handleCreateRoomClick = () => {
+    handleCreateRoomClick = async () => {
         const { playerName, roomName, roomMap, roomMaxPlayers, mode } = this.state;
         const analytics = useAnalytics();
+
+        if (!this.roomCreated) {
+            const lobby = await createLobby({roomName, mapName: this.roomCreatedMap, maxClients: roomMaxPlayers, mode: this.roomCreatedMode});
+            this.setState({hathoraId: lobby.roomId})
+            this.roomCreated = true
+        }
 
         const options: Types.IRoomOptions = {
             playerName,
@@ -146,6 +156,7 @@ export default class Home extends Component<IProps, IState> {
             roomMap,
             roomMaxPlayers,
             mode,
+            hathoraId: this.state.hathoraId,
         };
 
         analytics.track({ category: 'Game', action: 'Create' });
@@ -161,11 +172,7 @@ export default class Home extends Component<IProps, IState> {
 
     // METHODS
     updateRooms = async () => {
-        if (!this.client) {
-            return;
-        }
-
-        const rooms = await this.client.getAvailableRooms(Constants.ROOM_NAME);
+        const rooms = await lobbyClient.listActivePublicLobbies(HATHORA_APP_ID);
         this.setState({
             rooms,
         });
@@ -306,6 +313,7 @@ export default class Home extends Component<IProps, IState> {
                             values={MapsList}
                             onChange={(event: any) => {
                                 this.setState({ roomMap: event.target.value });
+                                this.roomCreatedMap = event.target.value
                                 analytics.track({
                                     category: 'Game',
                                     action: 'Map',
@@ -340,6 +348,7 @@ export default class Home extends Component<IProps, IState> {
                             values={GameModesList}
                             onChange={(event: any) => {
                                 this.setState({ mode: event.target.value });
+                                this.roomCreatedMode = event.target.value
                                 analytics.track({
                                     category: 'Game',
                                     action: 'Mode',
@@ -381,20 +390,20 @@ export default class Home extends Component<IProps, IState> {
             );
         }
 
-        return rooms.map(({ roomId, metadata, clients, maxClients }, index) => {
-            const map = MapsList.find((item) => item.value === metadata.roomMap);
-            const mapName = map ? map.title : metadata.roomMap;
+        return rooms.map(({ initialConfig, roomId, state }, index) => {
+            const typedState = state as LobbyState;
+            const typedInitialConfig = initialConfig as LobbyInitialConfig;
 
             return (
                 <Fragment key={roomId}>
                     <Room
                         id={roomId}
-                        roomName={metadata.roomName}
-                        roomMap={mapName}
-                        clients={clients}
-                        maxClients={maxClients}
-                        mode={metadata.mode}
-                        onClick={this.handleRoomClick}
+                        roomName={typedInitialConfig.roomName}
+                        roomMap={typedInitialConfig.mapName}
+                        clients={typedState?.playerCount ?? 0}
+                        maxClients={typedInitialConfig.maxClients}
+                        mode={typedInitialConfig.mode}
+                        onClick={() => this.handleRoomClick(roomId)}
                     />
                     {index !== rooms.length - 1 && <Space size="xxs" />}
                 </Fragment>

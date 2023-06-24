@@ -19,4 +19,5 @@ export interface IRoomOptions {
     roomMap: string;
     roomMaxPlayers: number;
     mode: GameMode;
+    hathoraId: string;
 }

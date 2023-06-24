@@ -10,6 +10,8 @@ import { View } from '../components';
 import { isMobile } from 'react-device-detect';
 import qs from 'querystringify';
 
+import { pollConnectionInfo } from '@tosios/common/src/hathora';
+
 interface IProps extends RouteComponentProps {
     roomId?: string;
 }
@@ -28,6 +30,8 @@ export default class Match extends Component<IProps, IState> {
     private room?: Room;
 
     private timer: NodeJS.Timeout | null = null;
+
+    public connectionInfo;
 
     // BASE
     constructor(props: IProps) {
@@ -85,18 +89,23 @@ export default class Match extends Component<IProps, IState> {
 
         // Connect
         try {
-            const host = window.document.location.host.replace(/:.*/, '');
-            const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
-            const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
+            const definedRoomId = isNewRoom ? options.hathoraId : roomId
 
-            this.client = new Client(url);
+            this.connectionInfo = await pollConnectionInfo(definedRoomId)
+            
+            const url = `wss://${this.connectionInfo.host}:${this.connectionInfo.port}`
+
+            if (!this.client){
+              this.client = new Client(url)
+            }
+
             if (isNewRoom) {
                 this.room = await this.client.create(Constants.ROOM_NAME, options);
 
                 // We replace the "new" in the URL with the room's id
                 window.history.replaceState(null, '', `/${this.room.id}`);
             } else {
-                this.room = await this.client.joinById(roomId, options);
+                this.room = await this.client.joinById(definedRoomId, options)
             }
         } catch (error) {
             navigate('/');
