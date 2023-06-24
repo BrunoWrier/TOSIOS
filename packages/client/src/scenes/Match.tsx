@@ -98,8 +98,7 @@ export default class Match extends Component<IProps, IState> {
             if (!this.client){
               this.client = new Client(url)
             }
-            
-            console.log(isNewRoom, roomId, options)
+
             if (isNewRoom) {
                 this.room = await this.client.create(Constants.ROOM_NAME, options);
 

@@ -172,14 +172,10 @@ export default class Home extends Component<IProps, IState> {
 
     // METHODS
     updateRooms = async () => {
-        const publicLobbies = await lobbyClient.listActivePublicLobbies(
-          HATHORA_APP_ID
-        ); 
-
+        const rooms = await lobbyClient.listActivePublicLobbies(HATHORA_APP_ID);
         this.setState({
-            rooms: publicLobbies,
+            rooms,
         });
-
     };
 
     // RENDER
