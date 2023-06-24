@@ -3,71 +3,56 @@ import { LobbyV2Api, RoomV1Api, AuthV1Api} from "@hathora/hathora-cloud-sdk";
 export const lobbyClient = new LobbyV2Api();
 export const roomClient = new RoomV1Api();
 export const authClient = new AuthV1Api();
-export const appId = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2"
-export var token;
-export const developerToken = process.env.hathoradeveloperToken
+export const HATHORA_APP_ID = "app-0d55c264-15fa-43c7-af9f-be9f172f95a2";
 
-export const authHathora = async () => {
-    if (token != undefined){
-        return;
-    }
-    token = await authClient.loginAnonymous(appId);
-}
+export type LobbyState = { playerCount: number };
+export type LobbyInitialConfig = { roomName: string, mapName: string, maxClients: number, mode: string };
 
 const getPing = async () => {
-    try {
-      const response = await fetch('https://api.hathora.dev/discovery/v1/ping');
-  
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-  
-      const data = await response.json();
-  
-      const connectionPromises = data.map(({ region, host, port }) => {
-        return new Promise(async (resolve) => {
-          const pingUrl = `wss://${host}:${port}`;
-          const socket = new WebSocket(pingUrl);
-  
-          socket.addEventListener('open', () => {
-            resolve({ region });
-            socket.close();
-          });
+    const response = await fetch('https://api.hathora.dev/discovery/v1/ping');
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const connectionPromises = data.map(({ region, host, port }) => {
+      return new Promise(async (resolve) => {
+        const pingUrl = `wss://${host}:${port}`;
+        const socket = new WebSocket(pingUrl);
+
+        socket.addEventListener('open', () => {
+          resolve({ region });
+          socket.close();
         });
       });
+    });
 
-      const { region } = await Promise.race(connectionPromises);
+    const { region } = await Promise.race(connectionPromises);
 
-      return region;
-    } catch (error) {
-      console.error(error);
-    }
-  }
+    return region;
+}
 
-  export const createLobby = async (obj) => {
-    if (token == undefined) {
-        return;
-    }
+  export const createLobby = async (initialConfig: LobbyInitialConfig) => {
     let pingRegion = await getPing()
 
-    const lobby = await lobbyClient.createLobby(
-        appId,
-        token.token,
+    const playerToken = (await (authClient.loginAnonymous(HATHORA_APP_ID))).token;
+    await lobbyClient.createLobby(
+        HATHORA_APP_ID,
+        playerToken,
         {
           visibility: "public",
           region: pingRegion,
-          initialConfig: {roomName: obj.state.roomName, mapName: obj.roomCreatedMap, clients: 0, maxClients: obj.state.roomMaxPlayers, mode: obj.roomCreatedMode},
+          initialConfig,
         },
-    )
-    
-    obj.setState({hathoraId: lobby.roomId})
-    obj.roomCreated = true
+    );
 }
 
-const getHathoraConnectionInfo = async (definedRoomId) => {
+const getHathoraConnectionInfo = async (roomId: string) => {
     let info = await roomClient.getConnectionInfo(
-        appId,
-        definedRoomId,
+        HATHORA_APP_ID,
+        roomId,
     );
     
     if (info === undefined){
@@ -78,46 +63,36 @@ const getHathoraConnectionInfo = async (definedRoomId) => {
 
 }
 
-export const pollConnectionInfo = async (definedRoomId) => {
+export const pollConnectionInfo = async (roomId: string) => {
     let result;
 
     while (result === undefined || result.status === 'starting' ) {
         await new Promise((resolve) => setTimeout(resolve, 200));
-        result = await getHathoraConnectionInfo(definedRoomId);
+        result = await getHathoraConnectionInfo(roomId);
     }
     
     return result;
 }
 
-export const hathoraSetLobbyState = async (roomId, clientslength) => {
-  let myCustomLobbyState = { playerCount: clientslength}
-
-  try{
-  const lobby = await lobbyClient.setLobbyState(
-      appId,
-      roomId,
-      { state: myCustomLobbyState },
-      { headers: {
-          Authorization: `Bearer ${developerToken}`,
-          "Content-Type": "application/json"
-      } }
-      ); 
-  }catch(error){
-      console.error(error)
-  }
-}
-
-export const hathoraDestroyLobby = async (roomId) => {
-  try{
-    const lobby = await roomClient.destroyRoom(
-        appId,
+export const hathoraSetLobbyState = async (roomId: string, playerCount: number) => {
+    await lobbyClient.setLobbyState(
+        HATHORA_APP_ID,
         roomId,
+        { state: { playerCount } },
         { headers: {
-          Authorization: `Bearer ${developerToken}`,
+          Authorization: `Bearer ${process.env.HATHORA_DEVELOPER_TOKEN}`,
           "Content-Type": "application/json"
         } }
-      );
-    }catch(error){
-        console.error(error)
-    }
+    );
+}
+
+export const hathoraDestroyLobby = async (roomId: string) => {
+    await roomClient.destroyRoom(
+        HATHORA_APP_ID,
+        roomId,
+        { headers: {
+          Authorization: `Bearer ${process.env.HATHORA_DEVELOPER_TOKEN}`,
+          "Content-Type": "application/json"
+        } }
+    );
 }

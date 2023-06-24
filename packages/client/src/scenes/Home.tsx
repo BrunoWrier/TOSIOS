@@ -21,10 +21,7 @@ import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
 
 import { Lobby } from "@hathora/hathora-cloud-sdk";
-import { authHathora, createLobby, lobbyClient, HATHORA_APP_ID } from '@tosios/common/src/hathora';
-
-type TypeLobbyState = { playerCount: number };
-type TypeLobbyInitialConfig = { roomName: string, mapName: string, clients: number, maxClients: number, mode: string, roomMap: string };
+import { createLobby, lobbyClient, HATHORA_APP_ID, LobbyState, LobbyInitialConfig } from '@tosios/common/src/hathora';
 
 const MapsList: IListItem[] = Constants.MAPS_NAMES.map((value) => ({
     value,
@@ -80,12 +77,9 @@ export default class Home extends Component<IProps, IState> {
     }
 
     // BASE
-    
-
     async componentDidMount() {
         try {
             await this.updateRooms()
-            await authHathora()
             this.setState(
                 {
                     timer: setInterval(this.updateRooms, Constants.ROOM_REFRESH),
@@ -147,10 +141,12 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleCreateRoomClick = async () => {
-        if (this.roomCreated == false) await createLobby(this);
-
         const { playerName, roomName, roomMap, roomMaxPlayers, mode, hathoraId } = this.state;
         const analytics = useAnalytics();
+
+        if (!this.roomCreated) {
+            await createLobby({roomName, mapName: this.roomCreatedMap, maxClients: roomMaxPlayers, mode: this.roomCreatedMode});
+        }
 
         const options: Types.IRoomOptions = {
             playerName,
@@ -397,8 +393,8 @@ export default class Home extends Component<IProps, IState> {
         }
 
         return rooms.map(({ initialConfig, roomId, state }, index) => {
-            const typedState = state as TypeLobbyState;
-            const typedInitialConfig = initialConfig as TypeLobbyInitialConfig;
+            const typedState = state as LobbyState;
+            const typedInitialConfig = initialConfig as LobbyInitialConfig;
 
             return (
                 <Fragment key={roomId}>
