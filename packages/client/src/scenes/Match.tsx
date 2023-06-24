@@ -89,7 +89,7 @@ export default class Match extends Component<IProps, IState> {
 
         // Connect
         try {
-            let definedRoomId = isNewRoom ? options.hathoraId : roomId
+            const definedRoomId = isNewRoom ? options.hathoraId : roomId
 
             this.connectionInfo = await pollConnectionInfo(definedRoomId)
             
