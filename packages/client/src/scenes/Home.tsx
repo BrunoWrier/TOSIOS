@@ -141,11 +141,13 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleCreateRoomClick = async () => {
-        const { playerName, roomName, roomMap, roomMaxPlayers, mode, hathoraId } = this.state;
+        const { playerName, roomName, roomMap, roomMaxPlayers, mode } = this.state;
         const analytics = useAnalytics();
 
         if (!this.roomCreated) {
-            await createLobby({roomName, mapName: this.roomCreatedMap, maxClients: roomMaxPlayers, mode: this.roomCreatedMode});
+            const lobby = await createLobby({roomName, mapName: this.roomCreatedMap, maxClients: roomMaxPlayers, mode: this.roomCreatedMode});
+            this.setState({hathoraId: lobby.roomId})
+            this.roomCreated = true
         }
 
         const options: Types.IRoomOptions = {
@@ -154,7 +156,7 @@ export default class Home extends Component<IProps, IState> {
             roomMap,
             roomMaxPlayers,
             mode,
-            hathoraId,
+            hathoraId: this.state.hathoraId,
         };
 
         analytics.track({ category: 'Game', action: 'Create' });

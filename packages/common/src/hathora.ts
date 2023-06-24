@@ -38,7 +38,7 @@ const getPing = async () => {
     let pingRegion = await getPing()
 
     const playerToken = (await (authClient.loginAnonymous(HATHORA_APP_ID))).token;
-    await lobbyClient.createLobby(
+    return await lobbyClient.createLobby(
         HATHORA_APP_ID,
         playerToken,
         {
